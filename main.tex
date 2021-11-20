@@ -1,0 +1,55 @@
+\documentclass{report}
+\usepackage[utf8]{inputenc}
+\usepackage{titlesec, blindtext, color}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage[hang,flushmargin]{footmisc}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{caption}
+\usepackage{float}
+%TC:incbib
+
+
+\onehalfspacing
+\setlength{\footnotesep}{1em}
+
+\hypersetup{
+    linktocpage=true,
+    linkcolor=OliveGreen,
+    citecolor=OliveGreen,
+    urlcolor=OliveGreen,
+    colorlinks=true
+}
+
+\captionsetup[figure]{
+    font=footnotesize,
+    labelfont=footnotesize
+}
+
+\title{\textbf{An Investigation into the Predictive Capabilities of a Simulation Based T20 Cricket Model}\newline\newline
+{\Large University of Exeter}}
+\author{Alex Michaels}
+\date{December 2021}
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0em}
+
+\include{introduction}
+\include{literature_review}
+
+\appendix
+\include{appendixA}
+
+\bibliographystyle{IEEEtran}
+\bibliography{zotero}
+
+\end{document}
+https://www.overleaf.com/project/61965b6b045d16308ada2379
