@@ -1,0 +1,66 @@
+\titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter\hsp\textcolor{gray75}{|}\hsp}{0pt}{\Huge\bfseries}
+\chapter{Methods}
+
+\section{The Data}
+
+\subsection{Description}
+
+The dataset that we use in the experiment comes exclusively from Indian Premier League cricket matches. The data comprises two .csv files. The first contains information about each match, while the second shows detailed information on a ball-by-ball basis. It is this latter dataset, that we use almost entirely in the analysis. It documents every ball of every IPL game from the opening season of the competition (in 2008) through to the culmination of the 2020 season. The data is originally sourced from the cricsheet database, \cite{rushe_cricsheet_nodate} a data collection project compiled by Stephen Rushe. I was fortunate to come across the data through Kaggle \cite{bhardwaj_ipl_nodate} in an upload by Prateek Bhardwaj. The Kaggle data was already pre-processed from its original form to an easy-to-work-with, .csv file type, meaning I could work with it straight out-of-the-box.
+
+Each row of the ball-by-ball data details 18 variables. We're told where the ball was bowled in the context of the game (inning, over, ball number in the over) as well as information of the batsman, non-striker, and bowler. Next are variables relating to the outcome of the delivery: batsman runs, extra runs and an 'is wicket' logical variable. Finally, we have a series of descriptions of those outcomes, like dismissal kind (e.g. caught, bowled, lbw), player dismissed, type of extra runs (byes, wides, leg-byes etc.).
+
+In all, we have 193467 rows of data in the ball-by-ball set, from 816 IPL matches between 2008-2020.\footnotemark{}
+
+\footnotetext{I should note here that while analysing the data I noticed several minor errors which I corrected manually. These were all in relation to no-balls being declared byes in the data. They were easy to pick up on when my code picked up an extra delivery than it expected in these overs.}
+
+\subsection{Data Wrangling}
+
+Whilst what we have is comprehensive, there was a significant amount of processing that we need to apply to the data, to obtain many other variables significant in impacting the outcome of a given delivery.
+
+\subsubsection{Outcome}
+
+The first variable to obtain is what I term the ‘outcome’ variable. This will act as the response variable in the final model. This was more complicated that it initially sounds, since not all outcomes are mutually exclusive. For example, no-balls can and often do result in runs attributed to the batter in addition to the extra run awarded to the batting team’s total. To account for this we add a logical variable to the data: ‘is no-ball’. Another example is that wide balls are sometimes so wide that they miss the wicket keeper entirely and the batting team are able to run for byes. In this instance, wides are logged as the extra type in the data, and the extra runs would include any byes that the batters run. This outcome variable therefore needs to be carefully designed in such a way as to not to rule out any possible outcomes from occurring in its design. The way in which we allow for further events to take place within a single ball is detailed in \autoref{sec: sim}. For now, know that the ‘outcome’ is assigned to a row based on the following checks, in this order.
+
+\begin{enumerate}
+    \setlength{\itemsep}{-0em}
+    \item If the ball results in a wicket \textit{and} is not a run-out: \textbf{wicket}.
+    \item Else if the type of extra is a wide: \textbf{wide}.
+    \item Else if the type of extra is a bye: \textbf{bye}.
+    \item Else if the type of extra is a leg-bye: \textbf{leg-bye}.
+    \item Else: the outcome is the number of ‘batsman runs’: \textbf{0-6}.
+\end{enumerate}
+
+\subsubsection{Game State}
+
+Lacking in the data were any variables related to the current game state. This is therefore something that we need to infer from the data, and add extra columns for. We add current runs scored, wickets remaining in the innings, and a first innings score variable to the data. We also add balls remaining in the innings, and runs required to win (if in the second innings). These final two variables were easy enough to obtain for most games, but became really quite complicated for those games which had been shortened due to weather. Often these games had stoppages during the second innings, resulting in the umpires declaring fewer overs to be played. This then adjusted the second innings batting team’s target score per the Duckworth-Lewis-Stern method, and of course reduced the number of balls remaining in a non-linear fashion. In matches where this was the case, I resorted to scouring the espncricinfo commentary pages \cite{noauthor_live_nodate} which proved to be a godsend. Another game-state variable that we add is a logical for ‘is powerplay’. The powerplay is the first 6 overs of each innings \footnotemark{}, where more restrictive fielding restrictions limit the number of fielders in the outfield (outside the thirty yard circle) to just two (down from five in the remaining overs). This is designed to encourage attacking play and favours the batting team.
+
+\footnotetext{Assuming a full twenty over innings. Powerplay overs are reduced in shortened games.}
+
+\subsubsection{Players}
+
+Possibly the most important variables in determining the outcome of a ball are the bowler and the batter. We take inspiration from the Kuo model here in gathering the historical statistics for the batter and bowler on a given ball and adding columns for these in the main dataset. The batter statistics that we use here are derived from the outcome variable. We get the number of 0s, 1s, 2s, 4s and 6s\footnotemark{} that they have scored in their IPL career and divide by the number of legal balls faced (total balls minus wides and no-balls), to get a number that corresponds to 1s per ball, 2s per ball etc. We also take their wickets, byes, and leg-byes per ball. Finally, we record a variable of the total number of balls that each batter has faced. This is here to act as some kind of measure of our confidence in the numbers we gather for them.
+
+\footnotetext{Notice there is no record of 3s or 5s. These are so rare, that I didn’t deem them significant. It’s also the case that a score of 3 or 5 is likely the result of a fielding error, and so little influenced by the batter.}
+
+A similar method is applied to each bowler. We get the 0s, 1s, 2s, 4s and 6s, conceded per ball bowled throughout the given bowler’s IPL career, in addition to wickets taken per ball and wides and no-balls conceded per ball.
+
+\subsubsection{Venue}
+
+The final two variables we add are a logical variable to say whether the current batting team has home field advantage, and a categorical variable for venue. Cricket is unlike many other sports in that the playing field has no strict dimensions. These often change substantially from venue to venue. Consequently, some smaller venues tend to see many more runs scored, and this variable attempts to account for this.
+
+\section{The Simulator}
+\label{sec: sim}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
