@@ -14,44 +14,145 @@ In all, we have 193467 rows of data in the ball-by-ball set, from 816 IPL matche
 \footnotetext{I should note here that while analysing the data I noticed several minor errors which I corrected manually. These were all in relation to no-balls being declared byes in the data. They were easy to pick up on when my code picked up an extra delivery than it expected in these overs.}
 
 \subsection{Data Wrangling}
+\label{subsec: data wrangling}
 
 Whilst what we have is comprehensive, there was a significant amount of processing that we need to apply to the data, to obtain many other variables significant in impacting the outcome of a given delivery.
 
 \subsubsection{Outcome}
 
-The first variable to obtain is what I term the ‘outcome’ variable. This will act as the response variable in the final model. This was more complicated that it initially sounds, since not all outcomes are mutually exclusive. For example, no-balls can and often do result in runs attributed to the batter in addition to the extra run awarded to the batting team’s total. To account for this we add a logical variable to the data: ‘is no-ball’. Another example is that wide balls are sometimes so wide that they miss the wicket keeper entirely and the batting team are able to run for byes. In this instance, wides are logged as the extra type in the data, and the extra runs would include any byes that the batters run. This outcome variable therefore needs to be carefully designed in such a way as to not to rule out any possible outcomes from occurring in its design. The way in which we allow for further events to take place within a single ball is detailed in \autoref{sec: sim}. For now, know that the ‘outcome’ is assigned to a row based on the following checks, in this order.
+The first variable to obtain is what I term the ‘outcome’ variable. This will act as the response variable in the main model. This is a categorical variable that describes the principal\footnotemark{} outcome of a given delivery.  The variable was designed in conjunction with the simulator, with each of the eleven categories representing a mutually exclusive outcome of a ball in a match. The categories of this variable are: runs off the bat from 0 to 6, wide, bye, leg-bye and wicket. The assignment of wicket is not given to balls where a run-out occurred. This is because it is possible, and indeed common, for at least 1 run to be scored during a run-out. Notice also that no-ball is not one of the eleven categories since runs are often scored during a no-ball. However, wides, byes and leg-byes are included in this variable because we know with certainty that 0 runs off the bat were scored.
 
-\begin{enumerate}
-    \setlength{\itemsep}{-0em}
-    \item If the ball results in a wicket \textit{and} is not a run-out: \textbf{wicket}.
-    \item Else if the type of extra is a wide: \textbf{wide}.
-    \item Else if the type of extra is a bye: \textbf{bye}.
-    \item Else if the type of extra is a leg-bye: \textbf{leg-bye}.
-    \item Else: the outcome is the number of ‘batsman runs’: \textbf{0-6}.
-\end{enumerate}
+\footnotetext{I say ‘principal’ here since the simulator we build, described in \cref{sec: sim}, allows for further events to take place during a delivery.}
 
 \subsubsection{Game State}
 
-Lacking in the data were any variables related to the current game state. This is therefore something that we need to infer from the data, and add extra columns for. We add current runs scored, wickets remaining in the innings, and a first innings score variable to the data. We also add balls remaining in the innings, and runs required to win (if in the second innings). These final two variables were easy enough to obtain for most games, but became really quite complicated for those games which had been shortened due to weather. Often these games had stoppages during the second innings, resulting in the umpires declaring fewer overs to be played. This then adjusted the second innings batting team’s target score per the Duckworth-Lewis-Stern method, and of course reduced the number of balls remaining in a non-linear fashion. In matches where this was the case, I resorted to scouring the espncricinfo commentary pages \cite{noauthor_live_nodate} which proved to be a godsend. Another game-state variable that we add is a logical for ‘is powerplay’. The powerplay is the first 6 overs of each innings \footnotemark{}, where more restrictive fielding restrictions limit the number of fielders in the outfield (outside the thirty yard circle) to just two (down from five in the remaining overs). This is designed to encourage attacking play and favours the batting team.
+Lacking in the data were any variables related to the current game state. This is therefore something that we need to infer from the data, and add extra columns for. We add current runs scored, wickets remaining in the innings, and a first innings score variable to the data. We also add balls remaining in the innings, and runs required to win (if in the second innings). These final two variables were easy enough to obtain for most games, but became really quite complicated for those games which had been shortened due to weather. Often these games had stoppages during the second innings, resulting in the umpires declaring fewer overs to be played. This then adjusted the second innings batting team’s target score per the Duckworth-Lewis-Stern method, and of course reduced the number of balls remaining in a non-linear fashion. In matches where this was the case, I resorted to scouring the espncricinfo commentary pages \cite{noauthor_live_nodate} which proved to be a godsend. Another game-state variable that we add is a logical for ‘is powerplay’. The powerplay is the first 6 overs of each innings\footnotemark{}, where more restrictive fielding restrictions limit the number of fielders in the outfield (outside the thirty yard circle) to just two (down from five in the remaining overs). This is designed to encourage attacking play and favours the batting team.
 
-\footnotetext{Assuming a full twenty over innings. Powerplay overs are reduced in shortened games.}
+\footnotetext{Assuming a full twenty over innings. Powerplay overs are reduced in shortened games. Where this is the case, this is reflected in the data.}
 
 \subsubsection{Players}
 
-Possibly the most important variables in determining the outcome of a ball are the bowler and the batter. We take inspiration from the Kuo model here in gathering the historical statistics for the batter and bowler on a given ball and adding columns for these in the main dataset. The batter statistics that we use here are derived from the outcome variable. We get the number of 0s, 1s, 2s, 4s and 6s\footnotemark{} that they have scored in their IPL career and divide by the number of legal balls faced (total balls minus wides and no-balls), to get a number that corresponds to 1s per ball, 2s per ball etc. We also take their wickets, byes, and leg-byes per ball. Finally, we record a variable of the total number of balls that each batter has faced. This is here to act as some kind of measure of our confidence in the numbers we gather for them.
+Possibly the most important variables in determining the probability distribution of outcomes are the bowler and the batter. We take inspiration from the Kuo model here in gathering the historical statistics for the batter and bowler on a given ball and adding columns for these in the main dataset. The statistics that we use here are derived from the outcome variable. We get the number of 0s, 1s, 2s, 4s and 6s\footnotemark{} that each batter has scored in their IPL career and divide by the number of legal balls faced (total balls minus wides and no-balls), to get a number that corresponds to 1s per ball, 2s per ball etc. We also get their wickets, byes, and leg-byes per ball.
 
 \footnotetext{Notice there is no record of 3s or 5s. These are so rare, that I didn’t deem them significant. It’s also the case that a score of 3 or 5 is likely the result of a fielding error, and so little influenced by the batter.}
 
-A similar method is applied to each bowler. We get the 0s, 1s, 2s, 4s and 6s, conceded per ball bowled throughout the given bowler’s IPL career, in addition to wickets taken per ball and wides and no-balls conceded per ball.
+The same method is applied to each bowler. We get the 0s, 1s, 2s, 4s and 6s conceded per ball bowled throughout the given bowler’s IPL career. This is in addition to wickets taken per ball and wides, no-balls and byes conceded per ball. 
 
 \subsubsection{Venue}
 
-The final two variables we add are a logical variable to say whether the current batting team has home field advantage, and a categorical variable for venue. Cricket is unlike many other sports in that the playing field has no strict dimensions. These often change substantially from venue to venue. Consequently, some smaller venues tend to see many more runs scored, and this variable attempts to account for this.
+The final two variables added are a logical variable to say whether the current batting team has home field advantage, and a categorical variable for venue. Cricket is unlike many other sports in that the playing field has no strict dimensions. These often change substantially from venue to venue. Consequently, some smaller venues tend to see many more runs scored, and this variable attempts to account for this.
 
 \section{The Simulator}
 \label{sec: sim}
 
+\subsection{Simulating a Delivery}
 
+This section describes the way the simulator runs through a ball, from start to finish. It explains how we work our way through the range of possible outcomes and how this solution enables every conceivable outcome of a delivery in T20 cricket to be possible in its simulations.\footnotemark{}
+
+\footnotetext{There are only two instances for where this is not the case. The first are the exceedingly rare occasions of 5 penalty runs being awarded to either team. This tends to occur after instances of more blatant cheating such as ball tampering, or repeated time wasting after receiving a warning. The second scenario which the simulator fails to account for are the similarly rare balls where batters were ‘retired hurt’.}
+
+We begin each ball by sampling from the distribution of eleven possible outcomes. \Cref{sec: models} explains in detail how this distribution is generated. The second step we go to, is dependent on the initial outcome sampled. More often than not, this will be a score of 0-6 runs, in which case we check for the no-ball. If this check returns as false (it will >99\% of the time) the simulator checks to see whether four or more runs were scored. If they were, we assume that the ball ran all the way to the boundary making a run-out impossible. If less than four runs were scored, the possibility of a run-out is checked for.
+
+If the no-ball check returned as true, the ‘free-hit’ variable is triggered to activate for the subsequent delivery. The simulator also ignores the count of the ball in the over, and one extra run is added to the batting team’s score. We then check to see whether we arrived at this point via an initial outcome of 0 or wide. We check for this because we know that outcomes of 1-6 are runs off the bat, and therefore no byes can be scored. If the outcome is a 0 or a wide, then we sample to check for the number of byes (if any). As before, if the number of byes is less than four, the run-out is also sampled for. If the initial outcome is byes or leg-byes, we jump immediately to this point of the simulator that checks for the number of byes.
+
+Finally, if a wicket is sampled initially, we make a further simulation to see whether the type of dismissal was ‘stumped’. This is because it is possible for a wide to be bowled and the batter to be given out stumped. So, if the stumping check returns true then we also check to see if it was a wide ball.
+
+This process is diagrammed in \cref{fig: flowchart} on page \pageref{fig: flowchart}.
+
+Once we reach an end point for the ball in the simulator, a number of variables relating to the events of the delivery are appended to. These variables are batter's runs, extra runs, byes, 'is wicket' and type of dismissal and player dismissed (if there is a wicket). We also track the innings, over and ball number in the over, as well as variables for 'is powerplay', 'is free-hit', balls remaining, wickets remaining, current runs scored, the batter, the batter's order in the batting lineup, and finally the bowler and if they're a spin bowler.
+
+After adding to these variables we then need to update them for the next ball. The game-state variables we just added to concern the state of the game prior to this ball being bowled. Now we update them for the subsequent delivery. The variables changed here are things like the balls remaining counter, wickets remaining counter, current runs. At this point we also switch the batter and non-striker variables if an odd number of runs were scored.
+
+These updated variables then get fed back into the main model and we go again.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\columnwidth]{images/cricket flowchart (2).png}
+    \caption{Flowchart showing the decision making process of the simulator during the course of a ball.}
+    \label{fig: flowchart}
+\end{figure}
+
+\newpage
+\subsection{Simulating a Match}
+
+Now we have a framework for how to simulate a ball, we can extend this to running through the whole match. 
+
+\subsubsection{Pre-Match Setup}
+
+This process begins by collecting some general information about the game which is needed for the simulator. This information includes the venue of the match, the team names of each side, and the lineups of each team. 
+
+In cricket, team lineups are presented in the order of the batting lineup. Handy for us, since this is one less variable to estimate. However, the team lineups don't give any suggestion into the likely bowlers or order of their deployment within an innings. So this is something that we need to think about here. First I consider how many overs each player might bowl. This is inferred manually, and almost entirely based on each player's average number of overs bowled, per appearance. The number of overs each player bowls is also fixed across all simulations of the given match. This is an okay solution, but it is a shame that I wasn't able to come up with a general purpose algorithm which could perhaps be used for simulating this also. Next time! Once I have decided the number of overs each bowler is to bowl, a function is used to get the order of bowlers for each over in the innings. This is a stochastic process and does change for each new match simulation. The order is generated as follows:
+
+\begin{enumerate}
+    \itemsep-0.25em
+    \item Get lineup of team along with number of overs to bowl corresponding to each player.
+    \item Get list of 20 bowler names. Each name in the list represents an over to be bowled by a player in the team lineup.
+    \item Shuffle the list of 20.
+    \item Check to see if this is an eligible bowling order.
+    \item If not, go back to step 5.
+\end{enumerate}
+
+I define a bowling order to be eligible by the following two checks. Firstly it must alternate after each over. A single player bowling two consecutive overs is forbidden in the laws of the game. Secondly, I check that of the first four and final four overs, a minimum of six of these be bowled by the best bowlers.\footnote{Bowlers bowing their maximum allocation of four overs.} This adds an extra layer of realism to the bowling orders since the opening and closing overs tend to be the domain of the most potent bowlers.
+
+\subsubsection{Toss}
+
+Now we decide which team bats first in the match. In doing this I naively assume that both team's preference for batting first vs second is equal. So a simple fifty-fifty virtual coin toss is all that's required here.
+
+\subsubsection{Initialising Variables}
+
+To prepare for the start of the match we need to initialise some variables which tell the model the state of the game before each ball is simulated. Recall that these variables are altered at the end of each ball, but we need to set them up here prior to the first ball of each innings. Variables include a logical 'is first innings', first innings score, batter, non-striker, next batter to enter, bowler, next bowler to bowl, current runs, wickets remaining, balls remaining, over number, ball number in the over, and the 'is free hit' logical variable.
+
+\subsubsection{Innings}
+
+To simulate an innings we simulate an over twenty times, which itself is a repetition of the delivery simulation six times. Between deliveries, we check to see if the wickets remaining reach zero, or if the target score is reached. This signals the end of the innings/match. At the end of each over, the batters switch ends, counter variables are updated and the bowler changes.
+
+\subsubsection{Output}
+
+The results of a simulated match are collected in three tables. The first shows the events of each ball in every simulated match, where each row represents a ball. The second table aggregates all of these simulations and gives the results of each simulated match, where each row represents a match. The final table aggregates results from each of the matches and returns a probability of various events occurring.
+
+Find all of the code for this process (and the rest of the project) in the Github repository, linked in \cref{appendix: code}
+
+\newpage
+\section{Model Building}
+\label{sec: models}
+
+\subsection{Main Model}
+
+The main model used in the simulation, to generate the initial outcome in a delivery simulation is a multi-layer perceptron. The model takes in 67 one-hot encoded variables to the input layer, which are passed through a dense hidden layer of 25 neurons, to an output layer of 11 neurons. The output layer applies the softmax activation function to each of the 11 possible outcomes, resulting in a probability estimation of each possible outcome. These are the probabilities that the simulator subsequently samples from.
+
+\subsubsection{Input Variables}
+
+When considering the game-state variables, I wanted to give the model a little more information in deciding what the relationship might be between some of these. I know from my experience watching a lot of cricket the effect that different game-states might have on the outcome of certain deliveries. For example, when the team batting first find themselves in the fortunate position of having many wickets remaining with only a couple of overs, say, remaining in their innings, they can take great risk, increasing the probability of both a boundary being scored as well a wicket falling.
+
+We therefore include a variable derived from balls remaining and wickets remaining which I term 'aggression'. This variable is simply wickets remaining divided by balls remaining and maxes out at 1. A second variable that I modify from the usual statistics is the required run rate. This is applicable only in the second innings and is the number of runs required to win divided again by the number of balls remaining in the innings. In games where the team batting first wins very comfortably, this number can get quickly get ridiculous. We therefore again attach a maximum value to this one of 6 to it, since this is the highest it can possibly get before the game becomes all but theoretically out of reach for the chasing side.
+
+When considering the batter and bowler statistics and how these should be input, I had main concerns to address. For players with very few appearences in the data, their statiscics for bowling/batting we often quite strange looking, as we might expect. We also need to think about how when it comes to testing the simulator on new games, with players that we have no data for, how we could include some other variable which could imply their ability and make an educated guess as to their possible performance.
+
+Considering the first problem: for players with limited data, I simply removed them from the tables containing batter and bowler statistics. The restriction that I applied here was that each batter needed to have faced more than 20 deliveries, and each bowler needed to have bowled more than 3 overs in their IPL career. These choices were admittedly arbitrary, but it seemed to do the job. The secondary benefit to doing this, was that it exposed the model to the possibility of encountering new players for whom we may have no prior data for. In these instances, we should try to use some other variable that is available to us as a proxy for their possible skill and likely performance. For batters, I used the position of the batter in the batting line-up\footnote{Batters higher up the order are generally superior to those further down.} For bowlers, I used the number of overs that the bowler is due to bowl in the innings.\footnote{In the training data I consider the average number of overs that the particular bowler bowls per innings, rounded to the nearest whole number. This is because that second innings is often concluded early meaning that not every bowler bowls their full allocation. In addition, games are occasionally curtailed due to weather. Using the actual number of overs bowled in these instances would also not be correct. I thought that average overs per appearance was therefore the best compromise, especially given that this metric was the one that I paid closest attention to in deciding the number of overs that each bowler is to bowl for each match in the 2021 testing data.}
+
+So, the final list of 28 variables input to the model is as follows:
+\begin{itemize}
+    \itemsep-0.25em
+    \renewcommand\labelitemi{-}
+    \item Venue
+    \item Is first innings? (logical)
+    \item Is powerplay? (logical)
+    \item Home advantage\footnote{Due to the circumstances of the 2021 IPL season being played during the pandemic, very few venues were used, which resulted in no team ever playing in their 'home' ground. As such this variable remains set to 0 when running the simulations on the 2021 games.} - batting team (logical)
+    \item Is free-hit? (logical)
+    \item Aggression
+    \item Required run-rate (set to 0 if 'is first innings' is true.
+    \item Batter position in the lineup.
+    \item Batter missing from data? (logical)
+    \item Batter's 0s, 1s, 2s, 4s, 6s, byes, legbyes, wickets per ball.\footnote{Set to 0 if batter data is missing.}
+    \item Bowler's number of overs in the innings.
+    \item Is spin bowler? (logical)
+    \item Bowler missing from data? (logical)
+    \item Bowler's 0s, 1s, 2s, 4s, 6s, byes, wides conceded and wickets taken per ball.\footnote{Also set to 0 if the bowler data is missing.}
+\end{itemize}
+
+These variables are fed to the model in a one-hot encoded format. This is because these types of models must have entirely numeric data fed to them. The way to solve this when working with categorical variables is to create a column for each possible category (venue, say) and use a binary 1 in the column of the venue of the particular match and 0s in all the remaining venue columns. True/false logical variables are treated in much the same way, though integers, such as batter order, are not.
+
+\subsubsection{Hyperparameters and Tuning the Model}
 
 
 
