@@ -47,19 +47,17 @@ The final two variables added are a logical variable to say whether the current 
 
 \subsection{Simulating a Delivery}
 
-This section describes the way the simulator runs through a ball, from start to finish. It explains how we work our way through the range of possible outcomes and how this solution enables every conceivable outcome of a delivery in T20 cricket to be possible in its simulations.\footnotemark{}
+This section describes the way the simulator runs through a ball, from start to finish. It explains how we work our way through the range of possible outcomes and how this solution enables every conceivable outcome of a delivery in T20 cricket to be possible in its simulations.\footnotemark{} See \cref{fig: flowchart} on page \pageref{fig: flowchart} for a detailed diagram of this whole process.
 
 \footnotetext{There are only two instances for where this is not the case. The first are the exceedingly rare occasions of 5 penalty runs being awarded to either team. This tends to occur after instances of more blatant cheating such as ball tampering, or repeated time wasting after receiving a warning. The second scenario which the simulator fails to account for are the similarly rare balls where batters were ‘retired hurt’.}
 
 We begin each ball by sampling from the distribution of eleven possible outcomes. \Cref{sec: models} explains in detail how this distribution is generated. The second step we go to, is dependent on the initial outcome sampled. More often than not, this will be a score of 0-6 runs, in which case we check for the no-ball. If this check returns as false (it will >99\% of the time) the simulator checks to see whether four or more runs were scored. If they were, we assume that the ball ran all the way to the boundary making a run-out impossible. If less than four runs were scored, the possibility of a run-out is checked for.
 
-If the no-ball check returned as true, the ‘free-hit’ variable is triggered to activate for the subsequent delivery. The simulator also ignores the count of the ball in the over, and one extra run is added to the batting team’s score. We then check to see whether we arrived at this point via an initial outcome of 0 or wide. We check for this because we know that outcomes of 1-6 are runs off the bat, and therefore no byes can be scored. If the outcome is a 0 or a wide, then we sample to check for the number of byes (if any). As before, if the number of byes is less than four, the run-out is also sampled for. If the initial outcome is byes or leg-byes, we jump immediately to this point of the simulator that checks for the number of byes.
+If the no-ball check returned as true, the ‘free-hit’ variable is triggered to activate for the subsequent delivery.\footnote{A note on free-hit balls: these by definition cannot result in a wicket (apart from run-outs). When this variable is activated, we remove the ability for a wicket to be sampled and instead sample from the remaining 10 possible outcomes using their respective probabilities. The fact that these no longer sum to 1 is no issue, since the function we uses normalizes them by dividing each probability by the sum of all 10.} The simulator also ignores the count of the ball in the over, and one extra run is added to the batting team’s score. We then check to see whether we arrived at this point via an initial outcome of 0 or wide. We check for this because we know that outcomes of 1-6 are runs off the bat, and therefore no byes can be scored. If the outcome is a 0 or a wide, then we sample to check for the number of byes (if any). As before, if the number of byes is less than four, the run-out is also sampled for. If the initial outcome is byes or leg-byes, we jump immediately to this point of the simulator that checks for the number of byes.\footnote{In these cases, we know with certainty that a byes score of 0 is impossible. Therefore, the exact same process to above is applied to the score of 0 this time.}
 
 Finally, if a wicket is sampled initially, we make a further simulation to see whether the type of dismissal was ‘stumped’. This is because it is possible for a wide to be bowled and the batter to be given out stumped. So, if the stumping check returns true then we also check to see if it was a wide ball.
 
-This process is diagrammed in \cref{fig: flowchart} on page \pageref{fig: flowchart}.
-
-Once we reach an end point for the ball in the simulator, a number of variables relating to the events of the delivery are appended to. These variables are batter's runs, extra runs, byes, 'is wicket' and type of dismissal and player dismissed (if there is a wicket). We also track the innings, over and ball number in the over, as well as variables for 'is powerplay', 'is free-hit', balls remaining, wickets remaining, current runs scored, the batter, the batter's order in the batting lineup, and finally the bowler and if they're a spin bowler.
+Once we reach an end point, a number of variables relating to the events of the delivery are appended to. These variables are batter's runs, extra runs, byes, 'is wicket' and type of dismissal and player dismissed (if there is a wicket). We also track the innings, over and ball number in the over, as well as variables for 'is powerplay', 'is free-hit', balls remaining, wickets remaining, current runs scored, the batter, the batter's order in the batting lineup, and finally the bowler and if they're a spin bowler.
 
 After adding to these variables we then need to update them for the next ball. The game-state variables we just added to concern the state of the game prior to this ball being bowled. Now we update them for the subsequent delivery. The variables changed here are things like the balls remaining counter, wickets remaining counter, current runs. At this point we also switch the batter and non-striker variables if an odd number of runs were scored.
 
@@ -72,7 +70,6 @@ These updated variables then get fed back into the main model and we go again.
     \label{fig: flowchart}
 \end{figure}
 
-\newpage
 \subsection{Simulating a Match}
 
 Now we have a framework for how to simulate a ball, we can extend this to running through the whole match. 
@@ -112,23 +109,22 @@ The results of a simulated match are collected in three tables. The first shows 
 
 Find all of the code for this process (and the rest of the project) in the Github repository, linked in \cref{appendix: code}
 
-\newpage
 \section{Model Building}
 \label{sec: models}
 
 \subsection{Main Model}
 
-The main model used in the simulation, to generate the initial outcome in a delivery simulation is a multi-layer perceptron. The model takes in 67 one-hot encoded variables to the input layer, which are passed through a dense hidden layer of 25 neurons, to an output layer of 11 neurons. The output layer applies the softmax activation function to each of the 11 possible outcomes, resulting in a probability estimation of each possible outcome. These are the probabilities that the simulator subsequently samples from.
+The main model, used in the simulation to generate the initial outcome of a delivery, is a multi-layer perceptron. The model takes in 67 one-hot encoded variables to the input layer, which are passed through a dense hidden layer of 25 neurons, to an output layer of 11 neurons. The output layer applies the softmax activation function to each of the 11 possible outcomes, resulting in a probability estimation of each possible outcome with all 11 summing to 1. These are the probabilities that the simulator subsequently samples from.
 
 \subsubsection{Input Variables}
 
-When considering the game-state variables, I wanted to give the model a little more information in deciding what the relationship might be between some of these. I know from my experience watching a lot of cricket the effect that different game-states might have on the outcome of certain deliveries. For example, when the team batting first find themselves in the fortunate position of having many wickets remaining with only a couple of overs, say, remaining in their innings, they can take great risk, increasing the probability of both a boundary being scored as well a wicket falling.
+When considering the game-state variables, I wanted to give the model a little more information than the raw numbers themselves when deducing what the relationship might be between some of these. I know from my experience watching a lot of cricket the effect that different game-states might have on the outcome of certain deliveries. For example, when the team batting first find themselves in the fortunate position of having many wickets remaining with only a couple of overs, say, remaining in their innings, they can take great risk, increasing the probability of both a boundary being scored as well a wicket falling.
 
 We therefore include a variable derived from balls remaining and wickets remaining which I term 'aggression'. This variable is simply wickets remaining divided by balls remaining and maxes out at 1. A second variable that I modify from the usual statistics is the required run rate. This is applicable only in the second innings and is the number of runs required to win divided again by the number of balls remaining in the innings. In games where the team batting first wins very comfortably, this number can get quickly get ridiculous. We therefore again attach a maximum value to this one of 6 to it, since this is the highest it can possibly get before the game becomes all but theoretically out of reach for the chasing side.
 
-When considering the batter and bowler statistics and how these should be input, I had main concerns to address. For players with very few appearences in the data, their statiscics for bowling/batting we often quite strange looking, as we might expect. We also need to think about how when it comes to testing the simulator on new games, with players that we have no data for, how we could include some other variable which could imply their ability and make an educated guess as to their possible performance.
+When considering the batter and bowler statistics and how these should be input, I had 2 main concerns to address. For players with very few appearances in the data, their statistics for bowling/batting were often quite strange looking, as we might expect. We also need to think about how when it comes to testing the simulator on new games, with players that we have no data for, how we could include some other variable which could imply their ability and make an educated guess as to their possible performance.
 
-Considering the first problem: for players with limited data, I simply removed them from the tables containing batter and bowler statistics. The restriction that I applied here was that each batter needed to have faced more than 20 deliveries, and each bowler needed to have bowled more than 3 overs in their IPL career. These choices were admittedly arbitrary, but it seemed to do the job. The secondary benefit to doing this, was that it exposed the model to the possibility of encountering new players for whom we may have no prior data for. In these instances, we should try to use some other variable that is available to us as a proxy for their possible skill and likely performance. For batters, I used the position of the batter in the batting line-up\footnote{Batters higher up the order are generally superior to those further down.} For bowlers, I used the number of overs that the bowler is due to bowl in the innings.\footnote{In the training data I consider the average number of overs that the particular bowler bowls per innings, rounded to the nearest whole number. This is because that second innings is often concluded early meaning that not every bowler bowls their full allocation. In addition, games are occasionally curtailed due to weather. Using the actual number of overs bowled in these instances would also not be correct. I thought that average overs per appearance was therefore the best compromise, especially given that this metric was the one that I paid closest attention to in deciding the number of overs that each bowler is to bowl for each match in the 2021 testing data.}
+Considering the first problem: for players with limited data, I simply removed them from the tables containing batter and bowler statistics. The restriction that I applied here was that each batter needed to have faced more than 20 deliveries, and each bowler needed to have bowled more than 3 overs in their IPL career. These choices were admittedly arbitrary, but it seemed to do the job of removing the noisy data. The secondary benefit to doing this, was that it exposed the model to the possibility of encountering new players for whom we may have no prior data for. In these instances, we should try to use some other variable that is available to us as a proxy for their possible skill and likely performance. For batters, I used the position of the batter in the batting line-up.\footnote{Batters higher up the order are generally superior to those further down.} For bowlers, I used the number of overs that the bowler is due to bowl in the innings.\footnote{In the training data I consider the average number of overs that the particular bowler bowls per innings, rounded to the nearest whole number. This is because that second innings is often concluded early meaning that not every bowler bowls their full allocation. In addition, games are occasionally curtailed due to weather. Using the actual number of overs bowled in these instances would also not be correct. I thought that average overs per appearance was therefore the best compromise, especially given that this metric was the one that I paid closest attention to in deciding the number of overs that each bowler is to bowl for each match in the 2021 testing data.}
 
 So, the final list of 28 variables input to the model is as follows:
 \begin{itemize}
@@ -154,14 +150,115 @@ These variables are fed to the model in a one-hot encoded format. This is becaus
 
 \subsubsection{Hyperparameters and Tuning the Model}
 
+Now we have all the predictor variables, formatted correctly and ready to input to the model for training. In this training phase, we use a random 90\% of the total data. The remaining 10\% is used for testing at the end. Essentially, for us to make sure that the model is behaving as it ought to be, before we come to use it for predictions on the 2021 season. It is during this training process where the model 'learns' the parameters (weights and biases) of the model resulting in optimal performance. The training process itself though, is governed by more parameters and settings, set by us. These tweak the way in which the model goes about it's learning process and can have a sizeable impact on overall model performance. I chose the hyperparameters of this model, mostly through an iterative trial and error process. These decisions are outlined below.
 
+We choose the number of hidden layers to be 1 layer of 25 nodes, with the ReLU (rectified linear unit) activation function applied to each node. I wanted to keep the model fairly simple, given my lack of experience with these methods. I initially had the number of nodes in the hidden layer set to 40 - this being the average of the number of input and output nodes which seemed a reasonable starting point. Changing this down quite a long way to 16 resulted in a slightly worse model performance (in terms of the categorical cross-entropy loss function). I subsequently tried a number somewhere in the middle and happened on a bit of a sweet-spot at 25 nodes in the hidden layer. I tried increasing the number of layers to 2 layers of 25 nodes, though this had little effect. In preference of simplicity, I retained my initial choice of one hidden layer.
 
+The loss function that we use when evaluating the model and any changes to the hyperparameters, is the categorical cross-entropy function. This is often used in models of multi-class classification (such as this one) and it essentially measures the accuracy of the output distribution. \cite{noauthor_categorical_nodate} Other additions we make to the model are adding batch normalization and dropout regularization to the hidden layer of the network. The dropout rate (which we set here to 0.2) is where nodes in the hidden layer are randomly powered off (with probability 0.2) during the training of the model. This has the effect of reducing the network's dependence on certain nodes, forcing the network into learning a more balanced representation of the data and thus reducing over-fitting. \cite{ghatak_deep_2019} Batch normalization is another modification to the hidden layer. This normalizes the inputs to the hidden layer which makes the network faster and more stable. \cite{ioffe_batch_2015}
 
+The model 'learns' in a similar kind of trial and error way to us in the way we tweak the hyperparameters. It first looks at some rows of the data, and makes predictions for the distribution of possible outcomes. Then it tweaks those parameters used to make the prior prediction once it sees the actual outcomes that resulted from those prior sets of inputs. The loss function computes a kind of error score, quantifying the distance between the model's output and the real-life outcome. This tells the model how good or bad it's predictions were, at which point it then it goes back and alters the weights and biases of the network in such as way as to reduce the output of this loss function. It then repeats this process until the loss function reaches a local minimum. An optimizer algorithm is responsible for this process of re-tuning the weights and biases between each batch of data that the model 'sees'. There are many choices available to us here - we use the Adam (adaptive moment estimation) optimizer. This function takes in another tunable parameter - the learning rate. This is a measure of how severe the changes to the model parameters are by the optimization algorithm, between a check of a batch. I set the learning rate initially to 0.0001, down from the algorithm's default value of 0.001 since the learning curve was bouncing around too much using the default learning rate value. I also ask the learning rate to reduce when the learning curve reaches a plateau. 
 
+The final hyperparameters I set are the maximum number of epochs that the model trains for. It is the maximum since another setting we use, tells the model to stop training when the loss function reaches its local minimum. I use 300 - a recommended setting from Ghatak's hugely helpful \textit{Deep Learning with R}) \cite{ghatak_deep_2019}. This is the number of times that the model 'sees' the entire training dataset. The batch size I set to 50 - the number of rows of the training data it 'sees' before altering the parameters in accordance with the Adam gradient descent function. Lastly I use a validation split of 0.1. As the model trains it tests it's current parameters on an unseen portion of the dataset (the validation set), giving us a validation loss score, as well as a training loss score.
 
+\subsubsection{Testing the Model}
 
+The final part of the process of building the main model is testing it on the remaining 10\% of the data. First we take a look at the number of each outcome in the testing data, and compare this to the model's expected number of occurrences for each outcome across that same data. Given that the model gives us probabilities for each outcome, we infer its expected number for each of these by simply summing up each probability for all rows of the data.
 
+Looking at \cref{table: main model1}, we can see that the model performs well for predicting frequencies across all categories. I judge this on the $p$ column. This $p$-value measures the probability of seeing at least the observed deviation from the model's expected number of each outcome, under the assumption of the Poisson distribution (where $\lambda$ is the model's expected number of observations). Given all the $p$-values are above the 0.05 significance level, we can say that none of the observed number of outcomes differ significantly from the model's expectations, which is a good sign!
 
+\begin{table}[ht]
+\centering
+\begin{tabular} {c c c c} \toprule
+    {Outcome} & {Number Predicted} & {Number in Test Data} & {$p$} \\ \midrule
+     0 & 5932.47 & 5995 & 0.413 \\
+     1 & 7189.05 & 7212 & 0.781 \\
+     2 & 1270.05 & 1203 & 0.060 \\
+     3 & 61.64 & 67 & 0.449 \\
+     4 & 2181.01 & 2181 & 0.989 \\
+     5 & 6.00 & 4 & 0.570 \\
+     6 & 895.26 & 870 & 0.401 \\ \midrule
+     Bye & 51.88 & 41 & 0.142 \\
+     Leg-bye & 317.83 & 324 & 0.702 \\
+     Wicket & 864.83 & 861 & 0.914 \\
+     Wide & 575.97 & 588 & 0.598 \\ \bottomrule
+\end{tabular}
+\caption{Table showing the performance of the main model on unseen test data.}
+\label{table: main model1}
+\end{table}
 
+Most important to us in this experiment, however, is accurately predicting the total number of runs and wickets across a large sample. We can examine this in \cref{table: main model2}, where the predicted total runs is calculated by multiplying the expected number of 0s, 1s, 2s etc. from the previous table by 0, 1, 2 etc. This ultimately results in a $p$-value of 0.098. Notably smaller than the mean $p$-value across the runs categories in \cref{table: main model1} (0.524), it seems we're seeing the sizable impact of scores of 6 runs already. Whilst the $p$-value for total runs is small, it remains the case that the observed total number of runs, doesn't differ significantly from expectations. This remains the case for predicting wickets, where the model performs encouragingly well.
+
+\begin{table}[h]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c c c} \toprule
+    {Outcome} & {Total Predicted} & {Total in Test Data} & {$p$} \\ \midrule
+     Runs & 24039.67 & 23783 & 0.098 \\
+     Wickets & 864.83 & 861 & 0.914 \\ \bottomrule
+\end{tabular}
+\caption{Table showing the main model's performance on the two most important categories: total runs and wickets.}
+\label{table: main model2}
+\end{table}
+
+\subsection{No-Ball Model}
+
+Referring back to \cref{sec: sim}, recall that if the outcome sampled in the main model is from 0-6 runs, the no-ball is checked for. To sample for this we build a new model that returns the probability for a no-ball, given some inputs. In building this model, I originally attempted to use similar techniques as in the main model for predicting no-ball probability. However, the predictions made by this approach were shockingly bad. (Possibly due to a combination of the rarity of the event, and therefore a lack of no-balls amongst the training data. More likely due to my own poor tuning of the model.) Then I tried a logistic regression with several inputs that I deemed suitable (outcome, bowler, game-state, venue, bowler-type, etc.) which ultimately showed that only a single variable was significant in predicting the probability of a no-ball. This variable was the 'is spin' logical, describing the given bowler's technique. As such our model here is refreshingly simple. If the bowler is a spin bowler, we assign a probability of the no-ball to be 0.00162. Consequently if they're a pace bowler, we set the no-ball probability to be 0.00599. These numbers are derived from the rows of data which were eligible to have been called a no-ball (i.e. not an already assigned bye, leg-bye, wide, or wicket). We split them, as before, into a training and test set using the same 90:10 ratio. Probabilities for each category are calculated as the frequentist probability of a no-ball occurring, given each bowler-type across the training data. Results of this approach on the testing set are given in the table below.
+
+\begin{table}[h]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c c} \toprule
+    {No-Balls Predicted} & {No-Balls in Test Data} & {$p$} \\ \midrule
+     77.20 & 70 & 0.451 \\ \bottomrule
+\end{tabular}
+\caption{Table showing the performance of the no-ball model on unseen test data.}
+\label{table: noball}
+\end{table}
+
+\subsection{Byes Model}
+
+When the simulator reaches the point in a ball simulation where the number of byes are required, it inputs to the byes model, which returns a probability distribution of possible outcomes from 0-5 byes. This is the second and final multi-class classification model after the outcome model, and is also a model of the neural network variety. It uses a new variable, number of byes, as it's response. This is a number from 0-5, and represents only the number of byes scored on a given ball. So if there was a no-ball or wide, the 1 penalty run for this is not included in this count.
+
+The inputs to this model total 7. We have logical variables for first innings, powerplay, free-hit, bowler type, the numerical game-state variables of aggression and required run rate and the category of the initial outcome. I found that a more simple tuning of the hyperparameters to this model was sufficient to obtaining a good performing model. As in the main model, we prefer simplicity here. So any additions made to the model resulting in a negligible change in performance were dropped. There is no batch normalization, nor dropout regularization applied here. The number of nodes in the hidden layer is reduced to 10 which works well. We retain the Adam optimization algorithm from the main model as well as the ReLU activation function on nodes of the hidden layer.
+
+The model is developed using a specific subset of the ball-by-ball data where byes are possible. These are balls where the outcome is either `wide', `bye', `leg-bye'. In addition byes are eligible on balls where outcome is 0 \textit{and} the `is no-ball' variable is true. This data totals just shy of 10000 rows. As before, we randomly split this up into a training and test set according to a 90:10 ratio. Below we have information on the performance of the trained byes model on the test data. Again, all $p$-values are greater than 0.05, suggesting that for none of the observed counts differ significantly from the model's expectations.
+
+\begin{table}[h]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c c c} \toprule
+    {Number of Byes} & {Number Predicted} & {Number in Test Data} & {$p$} \\ \midrule
+     0 & 559.72 & 541 & 0.442 \\
+     1 & 331.93 & 343 & 0.522 \\
+     2 & 22.56 & 27 & 0.298 \\
+     3 & 2.48 & 5 & 0.081 \\
+     4 & 58.82 & 60 & 0.810 \\
+     5 & 0.50 & 0 & 0.792 \\ \bottomrule
+\end{tabular}
+\caption{Table showing the main model's performance on predicting the number of byes }
+\label{table: byes}
+\end{table}
+
+\subsection{Run-Out Model}
+
+The next question from the simulator that needs dealing with is deciding whether a run-out occurred on a ball for which this is a possible event. As in the previous models, we develop this model only on data for which a run-out is a possible outcome. This model is a logistic regression. It is reduced down such that only variables significant in predicting the probability of a run-out are present. This results in us using two separate models to estimate this since required run-rate (a variable only applicable in the second innings of the match) is significant, along with aggression. This is expected and what I hoped for. I know that many more run-outs tend to occur at the end of each innings since the batters running have far less to lose at this stage of the game. It's encouraging that this model is able to capture this relationship.
+
+The first innings model uses only the aggression variable in determining run-out likelihood. The second innings model supplements this with the required run-rate variable.
+
+\begin{table}[ht]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c c c} \toprule
+    {Innings} & {Number Predicted} & {Number in Test Data} & {$p$} \\ \midrule
+     First & 50.59 & 55 & 0.482 \\
+     Second & 36.83 & 39 & 0.644 \\ \bottomrule
+\end{tabular}
+\caption{Table showing the run-out model's performance on predicting the number of run-outs in unseen test data.}
+\label{table: runouts}
+\end{table}
+
+\subsection{Stumped Model}
+
+\subsection[Wide Model]{Wide Model\footnote{Given stumped}}
 
 
