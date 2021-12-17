@@ -3,7 +3,7 @@
 
 \section{Running the Simulator}
 
-The simulator was run on each of the 60 games of the 2021 IPL season. We were able to simulate each game 1000 times, resulting in a more than 14 million simulated deliveries to analyse. The data that we have is presented in three tables. As detailed in \cref{subsec: sim match}, we have one table of simulated ball-by-ball data, a second showing the results and other information pertaining to each simulated match (60,000 matches) and a final table which collates these results into probabilities and expected values of various events and outcomes in each of the 60 matches.
+The simulator was run on each of the 60 games of the 2021 IPL season. We were able to simulate each game 1000 times, resulting in more than 14 million simulated deliveries to analyse. The data that we have is presented in three tables. As detailed in \cref{subsec: sim match}, we have one table of simulated ball-by-ball data, a second showing the results and other information pertaining to each simulated match (60,000 matches) and a final table that collates these results into probabilities and expected values of various events and outcomes in each of the 60 matches.
 
 \section{Testing the Simulator's Predictions}
 
@@ -11,7 +11,7 @@ The simulator was run on each of the 60 games of the 2021 IPL season. We were ab
 
 \subsubsection{Overall Accuracy}
 
-An obvious place to start seems to be in evaluating how good the model is at picking the winner for each match. A primitive and straight-forward way of doing this is to simply take the team with the greatest win probability (estimated by the model's 1000 simulations of each match) as its `pick' to win the game, and then sum up the number that it predicts correctly.
+An obvious place to start seems to be in evaluating how good the model is at picking the winner for each match. A primitive and straightforward way of doing this is to simply take the team with the greatest win probability (estimated by the model's 1000 simulations of each match) as its `pick' to win the game, and then sum up the number that it predicts correctly.
 
 After doing this we find that it correctly predicts the winner on 30 occasions, exactly half of the total number of matches. A somewhat underwhelming result, though this test is far from conclusive. We can use the sports betting market as a benchmark and compare the two. The prices that we use here are the closing lines (prices immediately before the start of the match) from the international sportsbook Pinnacle\footnotemark{}, widely perceived to be one of the sharpest bookmakers in the world. \cite{norheim_closing_2017} Repeating the same test above, using the favourite according to the Pinnacle odds as the selection, yields 32 correct guesses for an accuracy score of 53.3\%. Not significantly higher than what our model managed, which gives us some hope. I did expect the Pinnacle closing lines to be more accurate than this.
 
@@ -19,7 +19,7 @@ After doing this we find that it correctly predicts the winner on 30 occasions, 
 
 \subsubsection{Win Totals}
 
-A more rigorous test would be one that takes into account the model's certainty in one selection over another. The above test treats a selection of 51\% certainty exactly the same as another with 75\% conviction, which clearly isn't ideal. The following test accounts for this by summing up the projected win probabilities for each team across the regular, and post season. This sum represents the expected number of wins for each team, which we can then compare to their actual number of wins. Again, we compare the model's projected win totals against the same benchmarks as before. These being the blind 50:50 guesswork of the null model, and the Pinnacle closing line probabilities.\footnote{With the bookmaker's overround removed.}
+A more rigorous test would be one that takes into account the model's certainty in one selection over another. The above test treats a selection of 51\% certainty exactly the same as another with 75\% conviction, which clearly isn't ideal. The following test accounts for this by summing up the projected win probabilities for each team across the regular, and postseason. This sum represents the expected number of wins for each team, which we can then compare to their actual number of wins. Again, we compare the model's projected win totals against the same benchmarks as before. These being the blind 50:50 guesswork of the null model, and the Pinnacle closing line probabilities.\footnote{With the bookmaker's overround removed.}
 
 \begin{table}[ht]
 \vspace{0.5em}
@@ -36,15 +36,16 @@ A more rigorous test would be one that takes into account the model's certainty 
      Sunrisers Hyderabad & 8.03 & 7.00 & 6.42 & 3 \\ \midrule
      \textbf{Mean Absolute Error} & \textbf{1.891} & \textbf{1.750} & \textbf{1.534} & \\ \bottomrule
 \end{tabular}
-\caption{Comparing model expected win totals with projections derived from Pinnacle closing odds, the null model and the actual number of wins for each team across the 2021 regular and post season.}
+\caption{Comparing model expected win totals with projections derived from Pinnacle closing odds, the null model and the actual number of wins for each team across the 2021 regular and postseason.}
 \label{table: ex wins}
 \end{table}
 
 As might be expected against the sharpest lines in the world, our model is handily outperformed by the Pinnacle odds. It also comes up short against the null model which is disappointing.
 
 \subsection{First Innings Score}
+\label{subsec: fis}
 
-The second area we look at is gauging the model's skill (or lack of) at predicting the first innings score of a match. To test this, we take the mean first innings score across all simulations of a given match as the model's estimate for expected first innings runs. Then we compare these predictions to the observed first innings scores and calculate the mean absolute error. We compare this against the mean absolute error for predictions generated from a much simpler simulation engine, which acts as our benchmark.\footnote{It's unfortunate that I wasn't able to find any historical betting lines for first innings runs, nor for any other markets.}
+The second area we look at is gauging the model's skill (or lack of it) at predicting the first innings score of a match. To test this, we take the mean first innings score across all simulations of a given match as the model's estimate for expected first-innings runs. Then we compare these predictions to the observed first innings scores and calculate the mean absolute error. We compare this against the mean absolute error for predictions generated from a much simpler simulation engine, which acts as our benchmark.\footnote{It's unfortunate that I wasn't able to find any historical betting lines for first-innings runs, nor for any other markets.}
 
 The logic of the simple simulator works in exactly the same way as the main one we devise in \cref{sec: sim}. The key difference here, are the models used to generate probabilities for each event occurring. Where in the main simulator these probabilities change on each ball as the state of the game changes, in the simple version we use the exact same probabilities across all balls. These fixed distributions are derived from simple frequentist probabilities across the entire ball-by-ball training dataset.
 
@@ -56,7 +57,7 @@ The logic of the simple simulator works in exactly the same way as the main one 
      Main & 26.53 \\
      Simple & 24.75 \\ \bottomrule
 \end{tabular}
-\caption{MAE of main and simple simulators predicting the number of first innings runs.}
+\caption{MAE of main and simple simulators predicting the number of first-innings runs.}
 \label{table: fis}
 \end{table}
 
@@ -108,6 +109,36 @@ The final test is to see how our model performs at predicting the total number o
 \label{table: six}
 \end{table}
 
-\section{Discussion}
+\section{Discussion and Limitations}
 
-An underwhelming result. After all the effort, thousands of lines of code and millions of simulations, we appear to have created something no more superior than a humble 2 pence piece at predicting the winners of IPL games.
+These results are disappointing for our model. In all but one of the tests that we put it through, we find that a much simpler solution would have fit the observed data with a closer fit. Here, we attempt to figure out why that is and discuss limitations and potential improvements that could be made to the model to improve its predictive performance.
+
+\subsection{Ideas for Improvement}
+
+\subsubsection{Update the Model as the Season Progresses}
+
+The model is trained only on data up to and including the 2020 season. As the 2021 season progresses, the model's predictions stay the same, regardless of how good or bad specific teams and players were performing in real-life at the time. In contrast, betting odds are updated constantly and will often move significantly from their opening lines to their closing lines, as new information about the game is ingested by the market.
+
+This leads us onto a similar topic, concerning the historical data used to train the model. We treat each row of the training data the same as any other, regardless of when it was recorded. For example, a given player's performances from ten seasons ago are judged with equal weight as their statistics from last season. Clearly, more recent data carries more significance and this should be accounted for in the training process. I would very much welcome the opportunity to dig into this kind of research in the future. Perhaps some kind of decay function could be developed to diminish the impact of old data, whilst heightening the effect of more recent events?
+
+\subsubsection{Altering Aggression/Required Run-Rate Inputs to the Main Model}
+
+Something that occurred to me since training and testing the model is that I may have been better off not modifying the input variables relating to balls and wickets remaining in the innings. Given we're feeding them into a model which is repeatedly 'learning' the patterns of the input data, it may have deduced a relationship between these variables that is more nuanced and complex than the simple relationships that we forced upon it. It will be interesting to test this.
+
+\subsubsection{Changing the Validation Process}
+
+Going through the results of the model's simulations it's clear that it tends to over-predict runs. In the `first innings score' test in \cref{subsec: fis}, the mean error (model prediction $-$ observed first innings score) was 10.88. So on average, the model over-predicts first innings runs by almost 11 runs. In addition to this, carrying out the same test on predicted total 6s in each match yields an average overestimation of 2.12 6s per game. Looking back now at the validation checks on page \pageref{table: main model1}, it seems that the over-predicting of total runs and the small $p$-value associated with that check likely was a cause for concern after all. An overestimation of the number of 6s shown in \cref{table: main model1} should have been paid closer attention to, as well as the overestimation in the number of 2s. Had I instead multiplied the number of predicted 2s, 3s, 4s, 5s and 6s, by their corresponding number of runs, I would have discovered the overestimation in both 2s and 6s to be significant (yielding $p$-values of 0.00756 and 0.0386 respectively), forcing me into making some changes to the model to address this.
+
+\subsection{More General Limitations}
+
+\subsubsection{Computationally Intensive}
+
+Running these simulations is an intensive process and it does take a long time. Had we achieved good predictive results with this model we might find ourselves in a tricky spot. This is because lineups for cricket matches are often not released until half an hour prior to the match getting underway. In its current state, the simulator takes a lot longer than this to run through 1000 games, however, this can be optimised. At the moment it churns through each match one at a time, using only a single thread of CPU. However, the code can be changed to enable parallel computation across all available CPU threads, for a much quicker overall run-time.
+
+\subsubsection{Opaque Model}
+
+Neural networks are inherently opaque. It is very difficult to deduce what exactly the effect is of altering a specific input up or down some amount. This means that making improvements to the model could be tricky. For example, we just discussed the need to make changes to the model to lower the number of 2s and 6s it predicts, but we have no indication of a reasonable way of doing that! So we must resort to lots of trial and error, which is very time consuming and computationally expensive.
+
+\section{Summary}
+
+We have achieved what we set out to when starting this project. I wanted to build a simulation-based T20 cricket model and then test its predictive performance. This is what I've done. This results section shows that it didn't perform well, which is a shame. I suggest several ways to improve upon this initial prototype to have it make more accurate predictions, and I'm confident that implementing these can improve prediction accuracy.
