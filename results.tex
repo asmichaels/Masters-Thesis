@@ -1,3 +1,52 @@
 \titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter\hsp\textcolor{gray75}{|}\hsp}{0pt}{\Huge\bfseries}
 \chapter{Results}
 
+\section{The Experiment}
+
+The simulator was run on each of the 60 games of the 2021 IPL season. We were able to simulate each game 1000 times, resulting in a more than 14 million simulated deliveries to analyse. The data that we have is presented in three tables. As detailed in \cref{subsec: sim match}, we have one table of simulated ball-by-ball data, a second showing the results and other information of each simulated match (60,000 matches) and a final table which collates these results into probabilities and expected values of various events and outcomes in each of the 60 matches.
+
+\section{Testing some of the Model's Predictions}
+
+\subsection{Test 1: Picking Winners}
+
+\subsubsection{Overall Accuracy}
+
+An obvious place to start seems to be in evaluating how good the model is at picking the winner for each match. A primitive and straight-forward way of doing this is to simply take the team with the greatest win probability (estimated by the model's 1000 simulations of each match) as its `pick' to win the game, and then sum up the number that it predicts correctly.
+
+After doing this we find that it correctly predicts the winner on 30 occasions, exactly half of the total number of matches. An underwhelming result. After all the effort, thousands of lines of code and millions of simulations, we appear to have created something no more superior than a humble 2 pence piece at predicting the winners of IPL games.
+
+However, it may simply be the case that predicting the results of these matches is extremely difficult. We can use the sports betting market as a benchmark and see how this performs. The prices that we use here are the closing lines (prices immediately before the start of the match) from the international sportsbook Pinnacle\footnotemark{}, widely perceived to be one of, if not the sharpest bookmaker in the world. \cite{norheim_closing_2017} Repeating the same test above using the favourite according to the Pinnacle odds as the selection, yields 32 correct guesses for an accuracy score of 53.3\%. Not significantly higher than what our model managed, which gives us some hope. I did expect the Pinnacle closing lines to be more accurate than this.
+
+\footnotetext{Prices sourced from Odds Portal \cite{noauthor_ipl_nodate}}
+
+\subsubsection{Win Totals}
+
+A more rigorous test would be one that takes into account the model's certainty in one selection over another. The above test treats a selection of 51\% certainty exactly the same as another with 75\% conviction, which obviously isn't correct. This test accounts for this by summing up the projected win probabilities for each team across the regular season. This sum represents the expected number of wins for each team, which we can then compare to their actual number of wins. Again, we compare the model's projected win totals against the same benchmarks as before. These being a blind 50:50 probability assignment to each team winning each match, and the Pinnacle closing line probabilities.\footnote{With the bookmaker's overround removed.}
+
+\begin{table}[ht]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c c c c} \toprule
+    {Team} & {Simulation Model} & {Null Model} & {Pinnacle} & {Actual} \\ \midrule
+     Mumbai Indians & 8.33 & 7.00 & 8.17 & 7 \\
+     Chennai Super Kings & 9.43 & 8.00 & 8.06 & 11 \\
+     Kolkata Knight Riders & 9.01 & 8.50 & 8.63 & 9 \\
+     Punjab Kings & 5.18 & 7.00 & 6.26 & 6 \\
+     Royal Challengers Bangalore & 5.79 & 7.50 & 7.76 & 9 \\
+     Delhi Capitals & 8.03 & 8.00 & 8.42 & 10 \\
+     Rajasthan Royals & 6.19 & 7.00 & 6.29 & 5 \\
+     Sunrisers Hyderabad & 8.03 & 7.00 & 6.42 & 3 \\ \midrule
+     \textbf{Mean Absolute Error} & \textbf{1.891} & \textbf{1.750} & \textbf{1.534} & \\ \bottomrule
+\end{tabular}
+\caption{Comparing model expected win totals with projections derived from Pinnacle closing odds, the null model and the actual number of wins for each team across the 2021 regular and post season.}
+\label{table: ex wins}
+\end{table}
+
+As is to be expected against the sharpest lines in the world, our model is handily outperformed by the Pinnacle odds. It also comes up short against the null model which is especially disappointing.
+
+\subsection{Test 2: First Innings Score}
+
+The second area we look at is gauging the model's ability to predict the first innings score of a match. To test this, we take the mean first innings score across all simulations of a given match as the model's estimate for expected first innings runs. We then compare take the mean absolute error of these estimates and compare this against predictions from a much simpler simulation engine, which acts as our benchmark.
+
+This simple simulator works in much the same way as the main one we devise in \cref{sec: sim}. However, the key difference with this one is that the distribution of outcomes in each of the models remains constant across the match. These distributions are learnt using the entire training dataset, and represent the frequentist probability of each specific outcome occurring. For example, the distribution of outcomes of the main model 
+
