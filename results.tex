@@ -1,27 +1,25 @@
 \titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter\hsp\textcolor{gray75}{|}\hsp}{0pt}{\Huge\bfseries}
 \chapter{Results}
 
-\section{The Experiment}
+\section{Running the Simulator}
 
-The simulator was run on each of the 60 games of the 2021 IPL season. We were able to simulate each game 1000 times, resulting in a more than 14 million simulated deliveries to analyse. The data that we have is presented in three tables. As detailed in \cref{subsec: sim match}, we have one table of simulated ball-by-ball data, a second showing the results and other information of each simulated match (60,000 matches) and a final table which collates these results into probabilities and expected values of various events and outcomes in each of the 60 matches.
+The simulator was run on each of the 60 games of the 2021 IPL season. We were able to simulate each game 1000 times, resulting in a more than 14 million simulated deliveries to analyse. The data that we have is presented in three tables. As detailed in \cref{subsec: sim match}, we have one table of simulated ball-by-ball data, a second showing the results and other information pertaining to each simulated match (60,000 matches) and a final table which collates these results into probabilities and expected values of various events and outcomes in each of the 60 matches.
 
-\section{Testing some of the Model's Predictions}
+\section{Testing the Simulator's Predictions}
 
-\subsection{Test 1: Picking Winners}
+\subsection{Picking Winners}
 
 \subsubsection{Overall Accuracy}
 
 An obvious place to start seems to be in evaluating how good the model is at picking the winner for each match. A primitive and straight-forward way of doing this is to simply take the team with the greatest win probability (estimated by the model's 1000 simulations of each match) as its `pick' to win the game, and then sum up the number that it predicts correctly.
 
-After doing this we find that it correctly predicts the winner on 30 occasions, exactly half of the total number of matches. An underwhelming result. After all the effort, thousands of lines of code and millions of simulations, we appear to have created something no more superior than a humble 2 pence piece at predicting the winners of IPL games.
-
-However, it may simply be the case that predicting the results of these matches is extremely difficult. We can use the sports betting market as a benchmark and see how this performs. The prices that we use here are the closing lines (prices immediately before the start of the match) from the international sportsbook Pinnacle\footnotemark{}, widely perceived to be one of, if not the sharpest bookmaker in the world. \cite{norheim_closing_2017} Repeating the same test above using the favourite according to the Pinnacle odds as the selection, yields 32 correct guesses for an accuracy score of 53.3\%. Not significantly higher than what our model managed, which gives us some hope. I did expect the Pinnacle closing lines to be more accurate than this.
+After doing this we find that it correctly predicts the winner on 30 occasions, exactly half of the total number of matches. A somewhat underwhelming result, though this test is far from conclusive. We can use the sports betting market as a benchmark and compare the two. The prices that we use here are the closing lines (prices immediately before the start of the match) from the international sportsbook Pinnacle\footnotemark{}, widely perceived to be one of the sharpest bookmakers in the world. \cite{norheim_closing_2017} Repeating the same test above, using the favourite according to the Pinnacle odds as the selection, yields 32 correct guesses for an accuracy score of 53.3\%. Not significantly higher than what our model managed, which gives us some hope. I did expect the Pinnacle closing lines to be more accurate than this.
 
 \footnotetext{Prices sourced from Odds Portal \cite{noauthor_ipl_nodate}}
 
 \subsubsection{Win Totals}
 
-A more rigorous test would be one that takes into account the model's certainty in one selection over another. The above test treats a selection of 51\% certainty exactly the same as another with 75\% conviction, which obviously isn't correct. This test accounts for this by summing up the projected win probabilities for each team across the regular season. This sum represents the expected number of wins for each team, which we can then compare to their actual number of wins. Again, we compare the model's projected win totals against the same benchmarks as before. These being a blind 50:50 probability assignment to each team winning each match, and the Pinnacle closing line probabilities.\footnote{With the bookmaker's overround removed.}
+A more rigorous test would be one that takes into account the model's certainty in one selection over another. The above test treats a selection of 51\% certainty exactly the same as another with 75\% conviction, which clearly isn't ideal. The following test accounts for this by summing up the projected win probabilities for each team across the regular, and post season. This sum represents the expected number of wins for each team, which we can then compare to their actual number of wins. Again, we compare the model's projected win totals against the same benchmarks as before. These being the blind 50:50 guesswork of the null model, and the Pinnacle closing line probabilities.\footnote{With the bookmaker's overround removed.}
 
 \begin{table}[ht]
 \vspace{0.5em}
@@ -42,11 +40,74 @@ A more rigorous test would be one that takes into account the model's certainty 
 \label{table: ex wins}
 \end{table}
 
-As is to be expected against the sharpest lines in the world, our model is handily outperformed by the Pinnacle odds. It also comes up short against the null model which is especially disappointing.
+As might be expected against the sharpest lines in the world, our model is handily outperformed by the Pinnacle odds. It also comes up short against the null model which is disappointing.
 
-\subsection{Test 2: First Innings Score}
+\subsection{First Innings Score}
 
-The second area we look at is gauging the model's ability to predict the first innings score of a match. To test this, we take the mean first innings score across all simulations of a given match as the model's estimate for expected first innings runs. We then compare take the mean absolute error of these estimates and compare this against predictions from a much simpler simulation engine, which acts as our benchmark.
+The second area we look at is gauging the model's skill (or lack of) at predicting the first innings score of a match. To test this, we take the mean first innings score across all simulations of a given match as the model's estimate for expected first innings runs. Then we compare these predictions to the observed first innings scores and calculate the mean absolute error. We compare this against the mean absolute error for predictions generated from a much simpler simulation engine, which acts as our benchmark.\footnote{It's unfortunate that I wasn't able to find any historical betting lines for first innings runs, nor for any other markets.}
 
-This simple simulator works in much the same way as the main one we devise in \cref{sec: sim}. However, the key difference with this one is that the distribution of outcomes in each of the models remains constant across the match. These distributions are learnt using the entire training dataset, and represent the frequentist probability of each specific outcome occurring. For example, the distribution of outcomes of the main model 
+The logic of the simple simulator works in exactly the same way as the main one we devise in \cref{sec: sim}. The key difference here, are the models used to generate probabilities for each event occurring. Where in the main simulator these probabilities change on each ball as the state of the game changes, in the simple version we use the exact same probabilities across all balls. These fixed distributions are derived from simple frequentist probabilities across the entire ball-by-ball training dataset.
 
+\begin{table}[ht]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c} \toprule
+    {Model} & {Mean Absolute Error} \\ \midrule
+     Main & 26.53 \\
+     Simple & 24.75 \\ \bottomrule
+\end{tabular}
+\caption{MAE of main and simple simulators predicting the number of first innings runs.}
+\label{table: fis}
+\end{table}
+
+\subsection{Highest Individual Score}
+
+We can again use the simple simulator to benchmark our estimate for the highest individual score in the match. As before we take the mean highest individual score from the simulators as our expected values, and compare these to observed values using the mean absolute error metric.
+
+\begin{table}[ht]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c} \toprule
+    {Model} & {Mean Absolute Error} \\ \midrule
+     Main & 18.10 \\
+     Simple & 17.07 \\ \bottomrule
+\end{tabular}
+\caption{MAE of main and simple simulators predicting the highest individual score of the match.}
+\label{table: his}
+\end{table}
+
+\subsection{1st Over Runs}
+
+Now we test the model against the benchmark simulator as they attempt to predict first over runs.
+
+\begin{table}[ht]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c} \toprule
+    {Model} & {Mean Absolute Error} \\ \midrule
+     Main & 3.216 \\
+     Simple & 3.594 \\ \bottomrule
+\end{tabular}
+\caption{MAE of main and simple simulators predicting the total runs of the first over of the match.}
+\label{table: fos}
+\end{table}
+
+\subsection{Total 6s}
+
+The final test is to see how our model performs at predicting the total number of 6s scored in each match.
+
+\begin{table}[ht]
+\vspace{0.5em}
+\centering
+\begin{tabular} {c c} \toprule
+    {Model} & {Mean Absolute Error} \\ \midrule
+     Main & 4.790 \\
+     Simple & 4.183 \\ \bottomrule
+\end{tabular}
+\caption{MAE of main and simple simulators predicting the total number of 6s in the match.}
+\label{table: six}
+\end{table}
+
+\section{Discussion}
+
+An underwhelming result. After all the effort, thousands of lines of code and millions of simulations, we appear to have created something no more superior than a humble 2 pence piece at predicting the winners of IPL games.
